@@ -1,6 +1,3 @@
-# app.py
-# Aplikasi Pengaduan Kampus + Dashboard (Versi Stabil & Lengkap)
-
 import streamlit as st
 from datetime import datetime
 
