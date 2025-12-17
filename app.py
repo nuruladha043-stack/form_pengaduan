@@ -1,131 +1,181 @@
 import streamlit as st
-from datetime import datetime
+from datetime import date
 
-# =========================
+# ===========================
 # KONFIGURASI HALAMAN
-# =========================
-st.set_page_config(page_title="Pengaduan Kampus", layout="wide")
+# ===========================
+st.set_page_config(page_title="To-Do List & Daily Planner", layout="wide")
 
-st.title("🏫 Aplikasi Pengaduan Kampus")
-st.caption("Simulasi sistem pengaduan mahasiswa dengan dashboard")
+# ===========================
+# INISIALISASI DATA
+# ===========================
+if "tasks" not in st.session_state:
+    st.session_state.tasks = []
 
-# =========================
-# SESSION STATE
-# =========================
-if "pengaduan_list" not in st.session_state:
-    st.session_state.pengaduan_list = []
-
-# =========================
-# MENU SIDEBAR
-# =========================
+# ===========================
+# SIDEBAR NAVIGASI
+# ===========================
+st.sidebar.title("📝 Daily Planner")
 menu = st.sidebar.radio(
     "Menu",
-    ["Form Pengaduan", "Dashboard", "Daftar Pengaduan", "Tentang"]
+    ["Dashboard", "Tambah Tugas", "Daftar Tugas", "Filter Tugas", "Tentang Aplikasi"]
 )
 
-# =========================
-# FORM PENGADUAN
-# =========================
-if menu == "Form Pengaduan":
-    st.subheader("📝 Form Pengaduan")
-
-    nama = st.text_input("Nama Mahasiswa")
-    nim = st.text_input("NIM")
-
-    prodi = st.selectbox(
-        "Program Studi",
-        [
-            "Akuntansi Keuangan Publik",
-            "Administrasi Bisnis Internasional",
-            "Teknik Sipil",
-            "Teknik Perencanaan Jalan dan Jembatan",
-            "Teknik Informatika",
-            "Keamanan Sistem Informasi",
-            "Teknik Mesin",
-            "Perkapalan",
-            "Maritim",
-            "Bahasa Inggris",
-        ],
-    )
-
-    kategori = st.selectbox(
-        "Kategori Pengaduan",
-        ["Akademik", "Fasilitas", "Administrasi", "Keuangan", "Lainnya"],
-    )
-
-    isi = st.text_area("Isi Pengaduan")
-    anonim = st.checkbox("Kirim sebagai anonim")
-
-    if st.button("Kirim Pengaduan"):
-        if nim.isdigit() and len(isi) >= 10:
-            data = {
-                "Nama": "Anonim" if anonim else nama,
-                "NIM": nim,
-                "Program Studi": prodi,
-                "Kategori": kategori,
-                "Isi": isi,
-                "Waktu": datetime.now().strftime("%d-%m-%Y %H:%M"),
-                "Status": "Diterima",
-            }
-            st.session_state.pengaduan_list.append(data)
-            st.success("✅ Pengaduan berhasil dikirim")
-        else:
-            st.warning("⚠️ NIM harus angka dan isi pengaduan minimal 10 karakter")
-
-# =========================
+# ===========================
 # DASHBOARD
-# =========================
-elif menu == "Dashboard":
-    st.subheader("📊 Dashboard Pengaduan")
+# ===========================
+if menu == "Dashboard":
+    st.title("📊 Dashboard To-Do List")
 
-    total = len(st.session_state.pengaduan_list)
-    akademik = len([p for p in st.session_state.pengaduan_list if p["Kategori"] == "Akademik"])
-    fasilitas = len([p for p in st.session_state.pengaduan_list if p["Kategori"] == "Fasilitas"])
+    total = len(st.session_state.tasks)
+    selesai = len([t for t in st.session_state.tasks if t["status"] == "Selesai"])
+    belum = total - selesai
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Pengaduan", total)
-    col2.metric("Pengaduan Akademik", akademik)
-    col3.metric("Pengaduan Fasilitas", fasilitas)
+    col1.metric("Total Tugas", total)
+    col2.metric("Selesai", selesai)
+    col3.metric("Belum Selesai", belum)
 
-    st.divider()
-    st.subheader("📌 Ringkasan per Program Studi")
+    st.subheader("📊 Statistik Prioritas")
+    if total > 0:
+        prioritas_count = {}
+        for t in st.session_state.tasks:
+            prioritas_count[t["prioritas"]] = prioritas_count.get(t["prioritas"], 0) + 1
+        st.bar_chart(prioritas_count)
 
-    prodi_count = {}
-    for p in st.session_state.pengaduan_list:
-        prodi_count[p["Program Studi"]] = prodi_count.get(p["Program Studi"], 0) + 1
+    st.subheader("📅 Tugas Hari Ini")
+    today_tasks = [t for t in st.session_state.tasks if t["tanggal"] == date.today()]
 
-    if prodi_count:
-        for k, v in prodi_count.items():
-            st.write(f"- {k}: {v} pengaduan")
+    if today_tasks:
+        for t in today_tasks:
+            st.write(f"- {t['nama']} ({t['status']})")
     else:
-        st.info("Belum ada data untuk ditampilkan")
+        st.info("Tidak ada tugas hari ini")
+    st.title("📊 Dashboard To-Do List")
 
-# =========================
-# DAFTAR PENGADUAN
-# =========================
-elif menu == "Daftar Pengaduan":
-    st.subheader("📋 Daftar Pengaduan")
+    total = len(st.session_state.tasks)
+    selesai = len([t for t in st.session_state.tasks if t["status"] == "Selesai"])
+    belum = total - selesai
 
-    if st.session_state.pengaduan_list:
-        for i, p in enumerate(st.session_state.pengaduan_list, start=1):
-            with st.expander(f"Pengaduan #{i} - {p['Kategori']}"):
-                st.write(f"**Nama**: {p['Nama']}")
-                st.write(f"**NIM**: {p['NIM']}")
-                st.write(f"**Program Studi**: {p['Program Studi']}")
-                st.write(f"**Kategori**: {p['Kategori']}")
-                st.write(f"**Isi**: {p['Isi']}")
-                st.write(f"**Waktu**: {p['Waktu']}")
-                st.write(f"**Status**: {p['Status']}")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Tugas", total)
+    col2.metric("Selesai", selesai)
+    col3.metric("Belum Selesai", belum)
+
+    st.subheader("📅 Tugas Hari Ini")
+    today_tasks = [t for t in st.session_state.tasks if t["tanggal"] == date.today()]
+
+    if today_tasks:
+        for t in today_tasks:
+            st.write(f"- {t['nama']} ({t['status']})")
     else:
-        st.info("Belum ada pengaduan masuk")
+        st.info("Tidak ada tugas hari ini")
 
-# =========================
+# ===========================
+# TAMBAH TUGAS
+# ===========================
+elif menu == "Tambah Tugas":
+    st.title("➕ Tambah Tugas Baru")
+
+    with st.form("form_tugas"):
+        nama = st.text_input("Nama Tugas")
+        kategori = st.selectbox("Kategori", ["Kuliah", "Pekerjaan", "Pribadi", "Lainnya"])
+        tanggal = st.date_input("Tanggal", date.today())
+        prioritas = st.selectbox("Prioritas", ["Rendah", "Sedang", "Tinggi"])
+        submit = st.form_submit_button("Simpan")
+
+    if submit:
+        if nama:
+            st.session_state.tasks.append({
+                "nama": nama,
+                "kategori": kategori,
+                "tanggal": tanggal,
+                "prioritas": prioritas,
+                "status": "Belum Selesai"
+            })
+            st.success("Tugas berhasil ditambahkan")
+        else:
+            st.error("Nama tugas wajib diisi")
+
+# ===========================
+# DAFTAR TUGAS
+# ===========================
+elif menu == "Daftar Tugas":
+    st.title("📋 Daftar Tugas")
+
+    if not st.session_state.tasks:
+        st.warning("Belum ada tugas")
+    else:
+        for i, t in enumerate(st.session_state.tasks):
+            with st.expander(f"{t['nama']} ({t['status']})"):
+                st.write(f"Kategori: {t['kategori']}")
+                st.write(f"Tanggal: {t['tanggal']}")
+                st.write(f"Prioritas: {t['prioritas']}")
+
+                col1, col2 = st.columns(2)
+                if t["status"] == "Belum Selesai":
+                    if col1.button("✔ Tandai Selesai", key=f"done_{i}"):
+                        st.session_state.tasks[i]["status"] = "Selesai"
+                        st.experimental_rerun()
+
+                if col2.button("🗑 Hapus Tugas", key=f"del_{i}"):
+                    st.session_state.tasks.pop(i)
+                    st.experimental_rerun()
+    st.title("📋 Daftar Tugas")
+
+    if not st.session_state.tasks:
+        st.warning("Belum ada tugas")
+    else:
+        for i, t in enumerate(st.session_state.tasks):
+            with st.expander(f"{t['nama']} ({t['status']})"):
+                st.write(f"Kategori: {t['kategori']}")
+                st.write(f"Tanggal: {t['tanggal']}")
+                st.write(f"Prioritas: {t['prioritas']}")
+
+                if t["status"] == "Belum Selesai":
+                    if st.button("Tandai Selesai", key=f"done_{i}"):
+                        st.session_state.tasks[i]["status"] = "Selesai"
+                        st.experimental_rerun()
+
+# ===========================
 # TENTANG
-# =========================
-elif menu == "Tentang":
-    st.subheader("ℹ️ Tentang Aplikasi")
-    st.write(
-        "Aplikasi Pengaduan Kampus ini merupakan simulasi sistem pengaduan mahasiswa "
-        "dengan fitur dashboard sederhana. Cocok untuk tugas kuliah dan portofolio GitHub."
+# ===========================
+elif menu == "Filter Tugas":
+    st.title("🔍 Filter Tugas")
+
+    kategori_filter = st.selectbox(
+        "Filter berdasarkan Kategori",
+        ["Semua", "Kuliah", "Pekerjaan", "Pribadi", "Lainnya"]
     )
 
+    status_filter = st.selectbox(
+        "Filter berdasarkan Status",
+        ["Semua", "Belum Selesai", "Selesai"]
+    )
+
+    filtered_tasks = st.session_state.tasks
+
+    if kategori_filter != "Semua":
+        filtered_tasks = [t for t in filtered_tasks if t["kategori"] == kategori_filter]
+
+    if status_filter != "Semua":
+        filtered_tasks = [t for t in filtered_tasks if t["status"] == status_filter]
+
+    if not filtered_tasks:
+        st.info("Tidak ada tugas sesuai filter")
+    else:
+        for t in filtered_tasks:
+            st.write(f"- {t['nama']} | {t['kategori']} | {t['status']}")
+
+else:
+    st.title("ℹ️ Tentang Aplikasi")
+    st.write(""
+    Aplikasi To-Do List & Daily Planner ini digunakan untuk membantu
+    mengatur tugas harian seperti kuliah, pekerjaan, dan kegiatan pribadi.
+
+    Fitur utama:
+    - Tambah dan kelola tugas
+    - Dashboard ringkasan tugas
+    - Penandaan tugas selesai
+    ""
+    )
